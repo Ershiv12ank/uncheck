@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Broooo!</title>
+    <style>
+        /* 1. Basic Reset and Page Styling */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6dd5ed, #2193b0); /* Cool blue gradient */
+            transition: background 1s ease-in-out; /* Smooth background transition */
+            color: #fff; /* White text for contrast */
+        }
+
+        /* 2. Modal/Pop-up Styles */
+        .welcome-modal {
+            background-color: rgba(0, 0, 0, 0.85); /* Dark, semi-transparent background */
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            /* Start hidden and small for animation */
+            opacity: 0; 
+            transform: scale(0.8);
+            /* Initial CSS for the animation */
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            max-width: 90%;
+        }
+
+        /* 3. Message Styling */
+        .welcome-modal h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #ffcc00; /* Yellow highlight */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .welcome-modal p {
+            font-size: 1.2em;
+            margin-top: 0;
+        }
+
+        /* 4. Active (Animated) State */
+        .welcome-modal.active {
+            opacity: 1; /* Fully visible */
+            transform: scale(1); /* Full size */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcomeMessage" class="welcome-modal">
+        <h1>Welcome Broooo! 👋</h1>
+        <p>We are waiting for you!</p>
+    </div>
+
+    <script>
+        // 1. Get the message element
+        const message = document.getElementById('welcomeMessage');
+        
+        // 2. Function to show the message with animation
+        function showWelcomeMessage() {
+            // Add the 'active' class to trigger the CSS transition (fade-in and scale-up)
+            message.classList.add('active');
+        }
+
+        // 3. Wait for the page content to load, then show the message
+        // This ensures the animation starts when the user opens the page
+        window.onload = showWelcomeMessage; 
+
+        // Optional: You could add a slight delay for dramatic effect:
+        /*
+        window.onload = function() {
+            setTimeout(showWelcomeMessage, 500); // 0.5 second delay
+        };
+        */
+    </script>
+
+</body>
+</html>

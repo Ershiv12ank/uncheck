@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Spring Boot TTS App</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #033049;
+            padding: 24px;
+        }
+
+        .card {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(10, 20, 40, 0.06);
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            font-size: 15px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        select,
+        input[type=range] {
+            padding: 6px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: #0b6df0;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .history {
+            margin-top: 18px;
+        }
+
+        .history li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <h2>Text → Voice (Spring Boot)</h2>
+
+    <label>Text</label>
+    <textarea id="text">Hello! This is a test from Spring Boot TTS.</textarea>
+
+    <div class="row">
+        <div>
+            <label>Language</label><br/>
+            <select id="language">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="hi-IN">Hindi (India)</option>
+                <option value="ta-IN">Tamil (India)</option>
+                <option value="kn-IN">Kannada (India)</option>
+                <option value="te-IN">Telugu (India)</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Voice</label><br/>
+            <select id="voice">
+                <option value="en-US-Wavenet-D">en-US-Wavenet-D</option>
+                <option value="en-US-Wavenet-F">en-US-Wavenet-F</option>
+                <option value="en-GB-Wavenet-A">en-GB-Wavenet-A</option>
+                <option value="hi-IN-Wavenet-A">hi-IN-Wavenet-A</option>
+                <option value="ta-IN-Wavenet-A">ta-IN-Wavenet-A</option>
+                <option value="kn-IN-Wavenet-A">kn-IN-Wavenet-A</option>
+                <option value="te-IN-Wavenet-A">te-IN-Wavenet-A</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Rate <span id="rateVal">1.0</span></label><br/>
+            <input id="rate" type="range" min="0.5" max="2.0" step="0.1" value="1.0"/>
+        </div>
+
+        <div>
+            <label>Pitch <span id="pitchVal">0.0</span></label><br/>
+            <input id="pitch" type="range" min="-5" max="5" step="0.5" value="0"/>
+        </div>
+
+        <div>
+            <label>Encoding</label><br/>
+            <select id="encoding">
+                <option value="MP3">MP3</option>
+                <option value="WAV">WAV</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="margin-top:12px">
+        <button id="generate">Generate</button>
+        <button id="refreshHistory">Refresh History</button>
+    </div>
+
+    <div style="margin-top:14px">
+        <audio id="player" controls style="width:100%"></audio>
+    </div>
+
+    <div class="history">
+        <h3>History</h3>
+        <ul id="historyList"></ul>
+    </div>
+</div>
+
+<script>
+    const rate = document.getElementById('rate');
+    const pitch = document.getElementById('pitch');
+    const rateVal = document.getElementById('rateVal');
+    const pitchVal = document.getElementById('pitchVal');
+
+    rate.oninput = () => rateVal.textContent = rate.value;
+    pitch.oninput = () => pitchVal.textContent = pitch.value;
+
+    // ------------------------------
+    // Generate TTS audio
+    // ------------------------------
+    document.getElementById('generate').addEventListener('click', async () => {
+        const text = document.getElementById('text').value.trim();
+        if (!text) return alert('Type text');
+
+        const payload = {
+            text,
+            languageCode: document.getElementById('language').value,
+            voiceName: document.getElementById('voice').value,
+            rate: parseFloat(rate.value),
+            pitch: parseFloat(pitch.value),
+            encoding: document.getElementById('encoding').value
+        };
+
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert('Error: ' + (data?.message || JSON.stringify(data)));
+            return;
+        }
+
+        const audioUrl = data.file;
+        document.getElementById('player').src = audioUrl;
+        window.open(audioUrl, '_blank');
+
+        loadHistory();
+    });
+
+    // ------------------------------
+    // Load History
+    // ------------------------------
+    async function loadHistory() {
+        const response = await fetch('/api/history');
+        const list = document.getElementById('historyList');
+
+        list.innerHTML = '';
+        if (!response.ok) return;
+
+        const arr = await response.json();
+        if (!Array.isArray(arr)) return;
+
+        arr.reverse().forEach(item => {
+            const li = document.createElement('li');
+            const t = item.text.length > 80 ? item.text.substring(0, 80) + '...' : item.text;
+
+            li.innerHTML = `
+                <strong>${item.languageCode} / ${item.voiceName}</strong> — ${t}
+                <br/>
+                <small>${new Date(item.createdAt).toLocaleString()}</small>
+                <br/>
+                <a href="/api/audio/${item.audioFileName}" target="_blank">Download</a>
+                <button onclick="deleteRecord(${item.id})">Delete</button>
+            `;
+
+            list.appendChild(li);
+        });
+    }
+
+    // ------------------------------
+    // Delete a record
+    // ------------------------------
+    async function deleteRecord(id) {
+        if (!confirm('Delete record?')) return;
+        await fetch('/api/history/' + id, {method: 'DELETE'});
+        loadHistory();
+    }
+
+    // Refresh button
+    document.getElementById('refreshHistory').addEventListener('click', loadHistory);
+
+    // Load history on page load
+    loadHistory();
+</script>
+
+</body>
+</html>
